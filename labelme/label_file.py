@@ -11,6 +11,7 @@ from labelme.logger import logger
 from labelme import PY2
 from labelme import QT4
 from labelme import utils
+from labelme.utils.tutils import SupportImageType
 
 
 PIL.Image.MAX_IMAGE_PIXELS = None
@@ -102,7 +103,18 @@ class LabelFile(object):
                         filename, version, __version__
                     )
                 )
-            imagePath = osp.join(osp.dirname(filename),osp.splitext(filename)[0]+".bmp")
+            
+            imagePath = None
+            for imgext in SupportImageType:
+                tempPath = osp.join(osp.dirname(filename),osp.splitext(filename)[0]+imgext)
+                if osp.exists(tempPath) and osp.isfile(tempPath):
+                    imagePath = tempPath
+                    break
+            if imagePath is None:
+                raise Exception("imagePath 不能为空")
+            if imagePath and (not (osp.exists(tempPath) and osp.isfile(tempPath))):
+                raise Exception("imagePath : {} 不存在或者不是文件".format(imagePath))
+            #xxx# imagePath = osp.join(osp.dirname(filename),osp.splitext(filename)[0]+".bmp")
             # if data["imageData"] is not None:
             #     imageData = base64.b64decode(data["imageData"])
             #     if PY2 and QT4:
