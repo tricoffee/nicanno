@@ -33,6 +33,8 @@ from labelme.widgets import UniqueLabelQListWidget
 from labelme.widgets import ZoomWidget
 
 from labelme.utils.tutils import list_files,SupportImageType
+from labelme.utils.qutils import PlotThread,mqplot
+import cv2
 
 
 # FIXME
@@ -1420,7 +1422,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for item in self.labelList:
             item.setCheckState(Qt.Checked if value else Qt.Unchecked)
 
-    def loadFile(self, filename=None):
+    def loadFile_old(self, filename=None):
         """Load the specified file, or the last opened file if None."""
         # changing fileListWidget loads file
         if filename in self.imageList and (
@@ -1463,14 +1465,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 )
                 self.status(self.tr("Error reading %s") % label_file)
                 return False
-            self.imageData = self.labelFile.imageData
-            self.imagePath = osp.join(
-                osp.dirname(label_file),
-                self.labelFile.imagePath,
-            )
+            #xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            # self.imageData = self.labelFile.imageData
+            # self.imagePath = osp.join(
+            #    osp.dirname(label_file),
+            #   self.labelFile.imagePath,
+            # )
+            # self.imageData = LabelFile.load_image_file(filename)
+            #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+            self.imageData = cv2.imread(filename)
+            if self.imageData:
+                self.imagePath = filename
             self.otherData = self.labelFile.otherData
         else:
             self.imageData = LabelFile.load_image_file(filename)
+            #self.imageData = cv2.imread(filename)
             if self.imageData:
                 self.imagePath = filename
             self.labelFile = None
@@ -1550,6 +1559,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.setFocus()
         self.status(self.tr("Loaded %s") % osp.basename(str(filename)))
         return True
+    
+    def loadFile(self, filename=None):
+        # 实例化线程对象
+        self.plot_work = PlotThread()
+
+        self.plot_work.mqw = self
+        self.filename = filename
+        self.plot_work.filename = filename   
+        # 线程自定义信号连接的槽函数
+        self.plot_work.trigger.connect(self.show_image)
+     
+        # 启动线程
+        self.plot_work.start()
 
     def resizeEvent(self, event):
         if (
@@ -2068,6 +2090,9 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 item.setCheckState(Qt.Unchecked)
             self.fileListWidget.addItem(item)
+    
+    def show_image(self,filename):
+        mqplot(self,filename)
 
 import time 
 
